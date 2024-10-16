@@ -85,24 +85,19 @@ class MyPlugin(Plugin):
 
         return list([(file_path, file_name) for (file_path, _, file_name) in file_infos])
 
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Mattermost Bot Token Handler")
+def main():
+    parser = argparse.ArgumentParser(description="Mattermost printer bot")
     parser.add_argument("mattermost_team", type=str, help="Mattermost team name")
     parser.add_argument("mattermost_url", type=str, help="Mattermost URL")
-    parser.add_argument("mattermost_token_file", type=str, help="Path to Mattermost bot token file")
+    parser.add_argument("mattermost_token", type=str, help="Mattermost bot token")
 
     args = parser.parse_args()
-
-    print(f"Mattermost Team: {args.mattermost_team}")
-    print(f"Mattermost URL: {args.mattermost_url}")
-    print(f"Mattermost Token File: {args.mattermost_token_file}")
 
     bot = Bot(
         settings=Settings(
             MATTERMOST_URL = args.mattermost_url,
             MATTERMOST_PORT = 443, # TODO: parametrize?
-            BOT_TOKEN = Path(args.mattermost_token_file).read_text().split()[0],
+            BOT_TOKEN = args.mattermost_token,
             BOT_TEAM = args.mattermost_team,
             SSL_VERIFY = True,
         ),
@@ -111,3 +106,7 @@ if __name__ == "__main__":
         ],
     )
     bot.run()
+
+
+if __name__ == "__main__":
+    main()

@@ -23,13 +23,12 @@
       in {
         default = mkPoetryApplication { 
           projectDir = self; 
-          # preferWheels = true;
           overrides = defaultPoetryOverrides.extend customOverrides;
         };
       });
 
       devShells = forAllSystems (system: let
-        inherit (poetry2nix.lib.mkPoetry2Nix { pkgs = pkgs.${system}; }) mkPoetryEnv defaultPoetryOverrides;
+        inherit (poetry2nix.lib.mkPoetry2Nix { pkgs = pkgs.${system}; }) mkPoetryEnv defaultPoetryOverrides mkPoetryApplication;
       in {
         default = pkgs.${system}.mkShellNoCC {
           packages = with pkgs.${system}; [
@@ -38,6 +37,10 @@
               overrides = defaultPoetryOverrides.extend customOverrides;
             })
             poetry
+            (mkPoetryApplication { 
+                 projectDir = self; 
+                 overrides = defaultPoetryOverrides.extend customOverrides;
+            })
           ];
         };
       });

@@ -9,6 +9,10 @@ packages = [
   { include = "printer_bot" }
 ]
 
+[tool.poetry.scripts]
+poetry = "poetry.console.application:main"
+mattermost-printer-bot = "printer_bot.__main__:main"
+
 [tool.poetry.dependencies]
 python = "^3.10"
 mmpy-bot = "^2.1.4"
