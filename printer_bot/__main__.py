@@ -1,4 +1,6 @@
+from datetime import datetime
 from typing import Tuple
+import dateutil
 from httpx import Response
 from mmpy_bot import Bot, Settings
 import argparse
@@ -29,7 +31,11 @@ def slugify(value, allow_unicode=False):
     return re.sub(r'[-\s]+', '-', value).strip('-_')
 
 
-class MyPlugin(Plugin):
+class PrinterBotPlugin(Plugin):
+    def __init__(self, print_command: str, scan_command: str):
+        self.print_command = print_command
+        self.scan_command = scan_command
+
     @listen_to('.*', re.IGNORECASE)
     async def process_any_message(self, message: Message):
         try:
@@ -43,9 +49,25 @@ class MyPlugin(Plugin):
             if not 'scan' in text.lower():
                 self.driver.reply_to(message, f'No files attahed. Are you trying to scan? If so, try `scan` command.')
             else:
-                self.driver.reply_to(message, f'scan funtionality is not yet implemented')
+                self.scan(message)
             return
 
+        self.print_files(imgs, message)
+
+    def scan(self, message: Message) -> None:
+        self.driver.reply_to(message, f'Starting scan...')
+        try:
+            file_path = Path(
+                f'/tmp/mattermost_printer_bot/scan/{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}.jpeg')
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            self.try_scan(file_path)
+        except Exception as e:
+            self.driver.reply_to(message, f'Error during image scanning - {e}')
+        else:
+            self.driver.reply_to(message, 'Result', file_paths=[str(file_path.resolve())])
+
+
+    def print_files(self, imgs: List[Tuple[Path, str]], message: Message) -> None:
         self.driver.reply_to(message, f'Found some files attached, trying to print...')
         for file_path, file_name in imgs:
             try:
@@ -56,17 +78,23 @@ class MyPlugin(Plugin):
                 self.driver.reply_to(message, f'Printed {file_name}!')
 
     def try_print(self, file_path: Path) -> None:
-        lp_bin_path = shutil.which('lp')
-        if lp_bin_path is None:
-            raise Exception('`lp` binary not found! Is cups installed?')
-        subprocess.run([lp_bin_path, str(file_path.resolve())])
+        self.run_command_expecting_success(f'{self.print_command} {file_path.resolve()}')
+
+    def try_scan(self, file_path: Path) -> None:
+        self.run_command_expecting_success(f'{self.scan_command} {file_path.resolve()}')
+
+    def run_command_expecting_success(self, cmd: str) -> None:
+        print(f"running command `{cmd}`...")
+        proc = subprocess.run([cmd], shell=True, capture_output=True)
+        if proc.returncode != 0:
+            raise Exception(f'Bad returncode! `{cmd}` returned {proc.returncode}')
 
     async def try_get_images(self, message: Message) -> List[Tuple[Path, str]] | None:
         if not 'file_ids' in message.body['data']['post']:
             return None
         file_infos: List[Tuple[Path, str, str]] = [
             (Path(
-                f'/tmp/mattermost_printer_bot/{slugify(message_info['id'])}.{message_info['extension']}'), 
+                f'/tmp/mattermost_printer_bot/print/{slugify(message_info['id'])}.{message_info['extension']}'), 
              message_info['id'], 
              message_info['name'])
             for message_info in message.body['data']['post']['metadata']['files']]
@@ -77,7 +105,7 @@ class MyPlugin(Plugin):
                 continue
             q: Response  = self.driver.files.get_file(file_id)
             if q.status_code != 200:
-                raise Exception(f'Non 200 status_code when trying to get image {file_name}! {q.text}')
+                raise Exception(f'{q.status_code} status_code when trying to get image {file_name}! {q.text}')
             file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(file_path, 'wb') as f:
                     print(f'Saving {file_id} to {file_path}')
@@ -87,22 +115,25 @@ class MyPlugin(Plugin):
 
 def main():
     parser = argparse.ArgumentParser(description="Mattermost printer bot")
+    parser.add_argument("mattermost_url", type=str, help="Mattermost server URL")
     parser.add_argument("mattermost_team", type=str, help="Mattermost team name")
-    parser.add_argument("mattermost_url", type=str, help="Mattermost URL")
     parser.add_argument("mattermost_token", type=str, help="Mattermost bot token")
+    parser.add_argument('-p', '--port', nargs='?', const=443, type=int, default=443, help="Mattermost server port")
+    parser.add_argument('-P', '--print', nargs='?', const='lp', type=str, default='lp', help="Custom print command that takes one arg and prints [default = `lp`]")
+    parser.add_argument('-S', '--scan', nargs='?', const='scanimage -o', type=str, default='scanimage -o', help="Custom scan command that takes one arg (destination) and scans to it [default - `scanimage -o`]")
 
     args = parser.parse_args()
 
     bot = Bot(
         settings=Settings(
             MATTERMOST_URL = args.mattermost_url,
-            MATTERMOST_PORT = 443, # TODO: parametrize?
+            MATTERMOST_PORT = args.port,
             BOT_TOKEN = args.mattermost_token,
             BOT_TEAM = args.mattermost_team,
             SSL_VERIFY = True,
         ),
         plugins=[
-            MyPlugin()
+            PrinterBotPlugin(args.print, args.scan)
         ],
     )
     bot.run()
