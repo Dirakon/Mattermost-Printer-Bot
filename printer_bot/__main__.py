@@ -11,7 +11,7 @@ def main():
     parser.add_argument("mattermost_token", type=str, help="Mattermost bot token")
     parser.add_argument('-p', '--port', nargs='?', const=443, type=int, default=443, help="Mattermost server port")
     parser.add_argument('-P', '--print', nargs='?', const='lp', type=str, default='lp', help="Custom print command that takes one arg and prints [default = `lp`]")
-    parser.add_argument('-S', '--scan', nargs='?', const='scanimage -o', type=str, default='scanimage -o', help="Custom scan command that takes one arg (destination) and scans to it [default - `scanimage -o`]")
+    parser.add_argument('-S', '--scan', nargs='?', const='scanimage -o', type=str, default='scanimage -o', help="Custom scan command that takes one arg (destination) and scans to it [default = `scanimage -o`]")
 
     args = parser.parse_args()
 

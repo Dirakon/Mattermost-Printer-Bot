@@ -68,7 +68,7 @@ optional arguments:
                         [default = `lp`]
   -S [SCAN], --scan [SCAN]
                         Custom scan command that takes one arg (destination)
-                        and scans to it [default - `scanimage -o`]
+                        and scans to it [default = `scanimage -o`]
 ```
 
 ### Example of running it
