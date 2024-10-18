@@ -3,8 +3,8 @@ name = "Mattermost-Printer-Bot"
 version = "0.1.0"
 description = ""
 authors = ["Dirakon"]
-# readme = "README.md"
-# license = "BSD"
+readme = "README.md"
+license = "MIT"
 packages = [
   { include = "printer_bot" }
 ]
