@@ -28,7 +28,9 @@ class PrinterBotPlugin(Plugin):
         if (imgs is None) or len(imgs) == 0:
             text: str = message.text
             if not 'scan' in text.lower():
-                self.driver.reply_to(message, f'No files attahed. Are you trying to scan? If so, try `scan` command.')
+                self.driver.reply_to(
+                    message, 
+                    f'No files attahed. Are you trying to scan? If so, try `scan` command.')
             else:
                 self.scan(message)
             return
@@ -68,7 +70,8 @@ class PrinterBotPlugin(Plugin):
         print(f"running command `{cmd}`...")
         proc = subprocess.run([cmd], shell=True, capture_output=True)
         if proc.returncode != 0:
-            raise Exception(f'Bad returncode! `{cmd}` returned {proc.returncode}:\n```\n{truncate_str(proc.stderr.decode(sys.stderr.encoding), 500)}\n```')
+            raise Exception(f'Bad returncode! `{cmd}` returned {proc.returncode}:' +
+                f'\n```\n{truncate_str(proc.stderr.decode(sys.stderr.encoding), 500)}\n```')
 
     async def try_get_images(self, message: Message) -> List[Tuple[Path, str]] | None:
         if not 'file_ids' in message.body['data']['post']:
